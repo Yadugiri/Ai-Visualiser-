@@ -1,0 +1,8 @@
+{
+  "name": "AI Design Visualization",
+  "description": "Transforms any image or sketch into a photorealistic image using the Gemini API's image editing capabilities.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}

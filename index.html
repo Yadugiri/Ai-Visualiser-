@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-M" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Visualiser</title>
+    <link rel="stylesheet" href="index.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div class="app-container">
+      <div id="sidebar-backdrop"></div>
+      <!-- Left Vertical Toolbar for Core Tools -->
+      <div id="left-toolbar">
+        <div class="tool-group">
+          <button id="select-tool-btn" class="tool-btn" title="Select & Edit Shapes (S)">
+            <i class="fa-solid fa-arrow-pointer"></i>
+          </button>
+        </div>
+        <div class="tool-group-separator"></div>
+        <div class="tool-group">
+          <div class="tool-group dropdown" id="drawing-tool-group">
+            <button
+              id="active-drawing-tool"
+              class="tool-btn active"
+              title="Sketch"
+            >
+              <i id="active-drawing-tool-icon" class="fa-solid fa-pen-nib"></i>
+            </button>
+            <div id="drawing-tool-options" class="dropdown-content hidden">
+              <button
+                id="sketch-tool-btn"
+                class="tool-btn dropdown-item active"
+                title="Sketch (B)"
+              >
+                <i class="fa-solid fa-pen-nib"></i>
+              </button>
+              <button
+                id="line-tool-btn"
+                class="tool-btn dropdown-item"
+                title="Line (L)"
+              >
+                <i class="fa-solid fa-minus"></i>
+              </button>
+              <button
+                id="french-curve-tool-btn"
+                class="tool-btn dropdown-item"
+                title="French Curve (V)"
+              >
+                <i class="fa-solid fa-bezier-curve"></i>
+              </button>
+            </div>
+          </div>
+          <div class="tool-group dropdown" id="shape-tool-group">
+            <button
+              id="active-shape-tool"
+              class="tool-btn"
+              title="Rectangle"
+            >
+              <i id="active-shape-tool-icon" class="fa-regular fa-square"></i>
+            </button>
+            <div id="shape-tool-options" class="dropdown-content hidden">
+              <button
+                id="rectangle-tool-btn"
+                class="tool-btn dropdown-item"
+                title="Rectangle (R)"
+              >
+                <i class="fa-solid fa-square"></i>
+              </button>
+              <button
+                id="circle-tool-btn"
+                class="tool-btn dropdown-item"
+                title="Circle (C)"
+              >
+                <i class="fa-solid fa-circle"></i>
+              </button>
+            </div>
+          </div>
+          <button id="text-tool-btn" class="tool-btn" title="Text (T)">
+            <i class="fa-solid fa-a"></i>
+          </button>
+          <button
+            id="eraser-btn"
+            class="tool-btn"
+            aria-label="Eraser tool"
+            title="Eraser (E)"
+          >
+            <i class="fa-solid fa-eraser"></i>
+          </button>
+        </div>
+        <div class="tool-group-separator"></div>
+        <div class="tool-group">
+           <button id="pan-tool-btn" class="tool-btn" title="Pan (Spacebar)">
+              <i class="fa-solid fa-hand"></i>
+            </button>
+        </div>
+      </div>
+
+      <!-- Main Area (Top Toolbar + Content) -->
+      <div id="main-area">
+        <!-- Top Contextual Toolbar -->
+        <div id="top-toolbar">
+          <div class="toolbar-section">
+             <div class="tool-group">
+              <button
+                id="save-session-btn"
+                class="btn-secondary"
+                title="Export Session (Ctrl+S)"
+              >
+                <i class="fa-solid fa-download"></i>
+              </button>
+              <button
+                id="import-btn"
+                class="btn-secondary"
+                title="Import Image or Session (Ctrl+O)"
+              >
+                <i class="fa-solid fa-upload"></i>
+              </button>
+              <button id="camera-btn" class="btn-secondary" title="Use Camera">
+                <i class="fa-solid fa-camera"></i>
+              </button>
+               <button
+                id="clear-sketch-btn"
+                class="btn-secondary"
+                aria-label="Clear sketch"
+                title="Clear Active Layer"
+              >
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              <button id="clear-all-btn" class="btn-secondary" title="Clear All">
+                <i class="fa-solid fa-broom"></i>
+              </button>
+            </div>
+            <div class="tool-group-separator"></div>
+            <div class="tool-group">
+              <button
+                id="undo-btn"
+                class="tool-btn"
+                aria-label="Undo last action"
+                disabled
+                title="Undo (Ctrl+Z)"
+              >
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+              <button
+                id="redo-btn"
+                class="tool-btn"
+                aria-label="Redo last action"
+                disabled
+                title="Redo (Ctrl+Y)"
+              >
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="toolbar-section" id="contextual-options-container">
+             <!-- CONTEXTUAL TOOL OPTIONS START -->
+            <div id="brush-options" class="tool-option-group hidden">
+              <label for="color-picker" id="color-picker-label" class="tool-btn" title="Stroke Color">
+                <i class="fa-solid fa-eye-dropper"></i>
+              </label>
+              <input type="color" id="color-picker" class="hidden" value="#000000" />
+              <div class="tool-group-separator"></div>
+              <label>Size</label>
+              <div class="slider-container">
+                <input
+                  type="range"
+                  id="brush-size"
+                  min="1"
+                  max="50"
+                  value="5"
+                  title="Stroke Size"
+                />
+                <label id="brush-size-label">5</label>
+              </div>
+            </div>
+            <div id="line-style-options" class="tool-option-group hidden">
+               <div class="tool-group-separator"></div>
+              <label>Style</label>
+              <div class="button-group">
+                <button
+                  id="solid-line-btn"
+                  class="tool-btn active"
+                  title="Solid Line"
+                >
+                  <i class="fa-solid fa-minus"></i>
+                </button>
+                <button id="hidden-line-btn" class="tool-btn" title="Hidden Line">
+                  <i class="fa-solid fa-ellipsis"></i>
+                </button>
+              </div>
+            </div>
+            <div id="fill-options" class="tool-option-group hidden">
+               <div class="tool-group-separator"></div>
+              <label>Fill</label>
+              <button id="fill-toggle-btn" class="tool-btn" title="Toggle Fill">
+                <i class="fa-solid fa-droplet-slash"></i>
+              </button>
+              <label for="fill-color-picker" class="tool-btn" id="solid-color-fill-btn" title="Solid Fill Color">
+                <span id="fill-color-preview"></span>
+              </label>
+              <input type="color" id="fill-color-picker" value="#bb86fc" class="hidden"/>
+              <input type="file" id="pattern-upload-input" class="hidden" accept="image/*" />
+              <button id="pattern-upload-btn" class="tool-btn" title="Upload Pattern">
+                  <i class="fa-solid fa-upload"></i>
+              </button>
+              <button id="linear-gradient-btn" class="tool-btn" title="Linear Gradient">
+                <i class="fa-solid fa-gradient"></i>
+              </button>
+              <button id="radial-gradient-btn" class="tool-btn" title="Radial Gradient">
+                <i class="fa-solid fa-bullseye"></i>
+              </button>
+              <div id="gradient-color-options" class="tool-option-group hidden">
+                  <label for="gradient-color-1" class="tool-btn" id="gradient-color-1-label" title="Gradient Start Color">
+                      <span id="gradient-color-1-preview"></span>
+                  </label>
+                  <input type="color" id="gradient-color-1" value="#FFFFFF" class="hidden"/>
+                  <label for="gradient-color-2" class="tool-btn" id="gradient-color-2-label" title="Gradient End Color">
+                      <span id="gradient-color-2-preview"></span>
+                  </label>
+                  <input type="color" id="gradient-color-2" value="#000000" class="hidden"/>
+              </div>
+            </div>
+            <div id="text-options" class="tool-option-group hidden">
+              <label for="color-picker" id="text-color-label" class="tool-btn" title="Text Color">
+                 <i class="fa-solid fa-eye-dropper"></i>
+              </label>
+              <div class="tool-group-separator"></div>
+              <select id="font-family-select" aria-label="Font Family">
+                <option>Roboto</option>
+                <option>Arial</option>
+                <option>Verdana</option>
+                <option>Georgia</option>
+                <option>Times New Roman</option>
+                <option>Courier New</option>
+              </select>
+              <input type="number" id="font-size-input" value="16" min="1" aria-label="Font Size">
+              <div class="button-group">
+                <button id="font-weight-btn" class="tool-btn" title="Bold"><i class="fa-solid fa-bold"></i></button>
+                <button id="font-style-btn" class="tool-btn" title="Italic"><i class="fa-solid fa-italic"></i></button>
+              </div>
+              <div class="button-group">
+                <button id="align-left-btn" class="tool-btn active" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+                <button id="align-center-btn" class="tool-btn" title="Align Center"><i class="fa-solid fa-align-center"></i></button>
+                <button id="align-right-btn" class="tool-btn" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+              </div>
+            </div>
+             <div id="shape-context-tools" class="tool-option-group hidden">
+              <div class="tool-group-separator"></div>
+              <button id="flip-horizontal-btn" class="tool-btn" title="Flip Horizontal">
+                <i class="fa-solid fa-arrows-left-right"></i>
+              </button>
+              <button id="flip-vertical-btn" class="tool-btn" title="Flip Vertical">
+                <i class="fa-solid fa-arrows-up-down"></i>
+              </button>
+              <div class="tool-group-separator"></div>
+              <button
+                id="delete-shape-btn"
+                class="tool-btn"
+                aria-label="Delete selected shape"
+                title="Delete Shape (Del)"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+            <!-- CONTEXTUAL TOOL OPTIONS END -->
+          </div>
+          <div class="toolbar-section">
+            <div class="tool-group">
+              <div class="tool-group dropdown" id="perspective-tool-group">
+                <button id="active-perspective-tool" class="tool-btn" title="Perspective Tools">
+                    <i class="fa-solid fa-sitemap"></i>
+                </button>
+                <div id="perspective-tool-options" class="dropdown-content hidden">
+                    <button id="one-point-tool-btn" class="tool-btn dropdown-item" title="Set 1-Point Perspective">
+                        1P
+                    </button>
+                    <button id="two-point-tool-btn" class="tool-btn dropdown-item" title="Set 2-Point Perspective">
+                        2P
+                    </button>
+                    <div class="dropdown-slider-container">
+                        <label for="vanishing-line-slider">Lines</label>
+                        <input type="range" id="vanishing-line-slider" min="2" max="30" value="8" title="Number of Vanishing Lines">
+                        <span id="vanishing-line-count-label">8</span>
+                    </div>
+                    <div class="dropdown-slider-container">
+                        <label for="vanishing-angle-slider">Angle</label>
+                        <input type="range" id="vanishing-angle-slider" min="0.5" max="5" value="1.5" step="0.1" title="Vanishing Line Angle Spread">
+                        <span id="vanishing-angle-label">1.5</span>
+                    </div>
+                    <div class="dropdown-separator"></div>
+                    <button id="toggle-guides-btn" class="tool-btn dropdown-item active" title="Toggle Perspective Guides">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <button id="clear-perspective-btn" class="tool-btn dropdown-item" title="Clear Perspective">
+                        <i class="fa-solid fa-ban"></i>
+                    </button>
+                </div>
+              </div>
+              <div class="tool-group dropdown" id="snap-tool-group">
+                <button id="snap-toggle-btn" class="tool-btn" title="Snapping Options">
+                  <i class="fa-solid fa-magnet"></i>
+                </button>
+                <div id="snap-options" class="dropdown-content hidden">
+                  <button
+                    id="snap-to-grid-btn"
+                    class="tool-btn dropdown-item active"
+                    title="Snap to Grid"
+                  >
+                    <i class="fa-solid fa-border-all"></i>
+                  </button>
+                  <button
+                    id="snap-to-objects-btn"
+                    class="tool-btn dropdown-item active"
+                    title="Snap to Objects"
+                  >
+                    <i class="fa-solid fa-cube"></i>
+                  </button>
+                </div>
+              </div>
+               <button
+                id="reset-view-btn"
+                class="tool-btn"
+                title="Reset View (Ctrl+0)"
+                aria-label="Reset View"
+              >
+                <i class="fa-solid fa-expand"></i>
+              </button>
+            </div>
+            <div class="tool-group-separator"></div>
+            <div class="tool-group">
+               <div class="tab-buttons">
+                <button id="sketch-tab-btn" class="tab-btn active" title="Sketch">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button
+                  id="generated-tab-btn"
+                  class="tab-btn"
+                  title="Generated Image"
+                >
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </button>
+              </div>
+              <div class="tool-group-separator"></div>
+              <button
+                id="layers-toggle-btn"
+                class="btn-secondary active"
+                title="Toggle Layers Panel"
+              >
+                <i class="fa-solid fa-layer-group"></i>
+              </button>
+              <button
+                id="history-toggle-btn"
+                class="btn-secondary"
+                title="Toggle History Panel"
+              >
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </button>
+              <button
+                id="toggle-prompt-panel-btn"
+                class="btn-secondary"
+                title="Ideas"
+              >
+                <i class="fa-solid fa-lightbulb"></i>
+              </button>
+              <button
+                id="saved-prompts-toggle"
+                class="btn-secondary"
+                title="Saved Prompts"
+                aria-label="Toggle saved prompts panel"
+              >
+                <i class="fa-solid fa-bookmark"></i>
+              </button>
+              <!-- The saved prompts panel will now be positioned relative to this bar -->
+              <div id="saved-prompts-panel" class="saved-prompts-panel closed">
+                <div class="panel-header">
+                  <h4><i class="fa-solid fa-bookmark"></i> Saved Prompts</h4>
+                  <button
+                    id="download-prompts-btn"
+                    class="btn-secondary"
+                    title="Download all prompts as .txt file"
+                    aria-label="Download all prompts"
+                  >
+                    <i class="fa-solid fa-download"></i>
+                  </button>
+                </div>
+                <div class="panel-content">
+                  <ul id="saved-prompts-list">
+                    <!-- Dynamically populated -->
+                  </ul>
+                  <p id="no-saved-prompts-message" class="hidden">
+                    You have no saved prompts yet.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content Wrapper -->
+        <div class="main-content-wrapper history-panel-collapsed" id="main-content-wrapper">
+          <!-- Main Panels Container -->
+          <main id="main-container">
+            <!-- Primary Tabbed Panel -->
+            <div class="panel" id="primary-panel">
+              <div class="panel-content tab-content-wrapper">
+                <!-- Sketch Tab Content -->
+                <div id="sketch-content" class="tab-pane active">
+                  <div class="image-container" id="before-image-container">
+                    <div id="eraser-cursor-preview" class="hidden"></div>
+                    <div id="perspective-setup-message" class="hidden"></div>
+                    <div id="before-image-placeholder">
+                      <i class="fa-solid fa-image"></i>
+                      <p>
+                        Drag & drop an image or session file here, click "Import",
+                        or use a sketch tool to start drawing.
+                      </p>
+                    </div>
+                    <img
+                      id="background-image-display"
+                      class="hidden"
+                      alt="Uploaded background image"
+                    />
+                    <canvas id="perspective-canvas"></canvas>
+                    <canvas id="grid-canvas"></canvas>
+                    <canvas id="before-canvas"></canvas>
+                  </div>
+                </div>
+                <!-- Generated Tab Content -->
+                <div id="generated-content" class="tab-pane">
+                  <div class="image-container" id="output-container">
+                    <div id="loader" class="hidden">
+                      <div class="spinner"></div>
+                      <p>Generating image...</p>
+                    </div>
+                    <img
+                      id="after-image"
+                      class="hidden"
+                      alt="Generated photorealistic image"
+                    />
+                    <p id="error-message" class="hidden"></p>
+                    <div class="panel-controls">
+                      <button id="download-sketch-btn" class="btn-secondary hidden" title="Download original sketch">
+                          <i class="fa-solid fa-pen-ruler"></i> Sketch
+                      </button>
+                      <button id="download-image-btn" class="btn-secondary hidden" title="Download generated image">
+                          <i class="fa-solid fa-image"></i> Image
+                      </button>
+                      <button id="toggle-prompt-btn" class="btn-secondary hidden" title="Hide prompt on image">
+                          <i class="fa-solid fa-eye-slash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Prompt Ideation Panel -->
+            <div class="panel" id="prompt-panel">
+              <div class="panel-header">
+                <h2>Prompt Ideation</h2>
+                <button
+                  id="close-prompt-panel-btn"
+                  class="btn-secondary close-btn"
+                >
+                  <i class="fa-solid fa-times"></i>
+                </button>
+              </div>
+              <div class="panel-content">
+                <div class="prompt-idea-generator">
+                  <label for="prompt-idea-input">Core Idea</label>
+                  <textarea
+                    id="prompt-idea-input"
+                    rows="2"
+                    placeholder="e.g., modern living room, futuristic car"
+                  ></textarea>
+                  <button id="generate-variations-btn" class="btn-primary">
+                    <i class="fa-solid fa-lightbulb"></i> Generate Ideas
+                  </button>
+                </div>
+                <div class="prompt-variations-container">
+                  <div id="prompt-panel-loader" class="hidden">
+                    <div class="spinner small"></div>
+                    <p>Generating ideas...</p>
+                  </div>
+                  <p id="prompt-variations-placeholder">
+                    Generated prompt ideas will appear here.
+                  </p>
+                  <ul id="prompt-variations-list">
+                    <!-- Generated prompts go here -->
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </main>
+
+          <!-- Layers Panel -->
+          <aside id="layers-panel" class="panel">
+            <div class="panel-header">
+              <h2>Layers</h2>
+            </div>
+            <div class="panel-content">
+              <ul id="layers-list">
+                <!-- Dynamically populated by JS -->
+              </ul>
+            </div>
+            <div class="panel-footer">
+              <button id="add-layer-btn" class="btn-secondary" title="Add New Layer">
+                  <i class="fa-solid fa-plus"></i>
+              </button>
+              <button id="delete-layer-btn" class="btn-secondary" title="Delete Selected Layer" disabled>
+                  <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </aside>
+
+          <!-- Image History Panel -->
+          <aside id="history-panel" class="panel">
+            <div class="panel-header">
+              <h2>History</h2>
+            </div>
+            <div class="panel-content">
+              <p id="no-history-message">Generated images will appear here.</p>
+              <ul id="history-list">
+                <!-- Populated by JS -->
+              </ul>
+            </div>
+            <div id="prompt-display-container" class="prompt-display hidden">
+              <div class="prompt-display-header">
+                <h4>Prompt Used</h4>
+              </div>
+              <p id="prompt-display-text"></p>
+              <button id="reuse-prompt-btn" title="Reuse this prompt">
+                <i class="fa-solid fa-repeat"></i> Reuse
+              </button>
+            </div>
+          </aside>
+        </div>
+
+        <!-- App Footer -->
+        <footer class="app-footer">
+          <div class="prompt-container">
+            <textarea
+              id="prompt-input"
+              rows="1"
+              placeholder="e.g., A modern floor lamp, photorealistic..."
+              aria-label="Prompt for image generation"
+            ></textarea>
+            <div id="grammar-suggestion-container" class="hidden">
+              <div class="suggestion-text-container">
+                <p>Suggestion: "<span id="suggestion-text"></span>"</p>
+              </div>
+              <div class="suggestion-actions">
+                <button id="accept-suggestion-btn" title="Accept suggestion">
+                  Accept
+                </button>
+                <button id="reject-suggestion-btn" title="Reject suggestion">
+                  <i class="fa-solid fa-times"></i>
+                </button>
+              </div>
+            </div>
+            <button
+              id="save-prompt-btn"
+              class="btn-secondary"
+              title="Save prompt"
+              aria-label="Save current prompt"
+            >
+              <i class="fa-solid fa-bookmark"></i>
+            </button>
+            <button
+              id="generate-btn"
+              aria-label="Generate new image"
+              title="Generate Image"
+            >
+              <i class="fa-solid fa-wand-sparkles"></i> Generate
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Hidden file input for uploads -->
+    <input
+      type="file"
+      id="import-file-input"
+      class="hidden"
+      accept="image/*,.json"
+    />
+
+    <!-- Camera Modal -->
+    <div id="camera-modal" class="modal-overlay hidden">
+      <div class="modal-content camera-modal-content">
+        <video id="camera-feed" playsinline autoplay muted></video>
+        <canvas id="camera-capture-canvas" class="hidden"></canvas>
+        <div class="modal-actions">
+          <button id="close-camera-btn">Cancel</button>
+          <button id="capture-btn" class="btn-primary">
+            <i class="fa-solid fa-camera"></i> Capture
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save History Modal -->
+    <div id="save-history-modal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h3>Image History Full</h3>
+        <p>Your history has 5 images. Would you like to save them all?</p>
+        <div class="modal-actions">
+          <button id="dismiss-modal-btn">Dismiss</button>
+          <button id="save-all-btn" class="btn-primary">
+            <i class="fa-solid fa-download"></i> Save All
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
